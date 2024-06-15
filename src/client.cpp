@@ -1,13 +1,6 @@
 #include <iostream>
 #include <string>
-
-#ifdef _WIN32
 #include <winsock2.h>
-#else
-#include <unistd.h>
-#include <sys/socket.h>
-#endif
-
 
 #define CHECKERROR(msg) if (err == -1) std::cout << msg << " error: " << WSAGetLastError() << std::endl;
 
@@ -15,12 +8,13 @@ int sockID;
 
 int err;
 sockaddr_in partner;
-int partnerSize = sizeof (partner);
+int partnerSize = sizeof(partner);
 
 const int bufferSize = 1024;
 char buffer[bufferSize];
 int recieved;
 const char *welcomeMessage = "Hello";
+std::string input;
 
 void listenToPartner(){
     recieved = recv(sockID, buffer, 1024, 0);
@@ -30,10 +24,9 @@ void listenToPartner(){
     std::cout << "Partner: " << buffer << std::endl;
 }
 int writeToPartner(){
-    std::string in;
-    std::cin >> in;
-    if (in == "c") return 0;
-    const char *inC = in.c_str();
+    std::cin >> input;
+    if (input == "c") return 0;
+    const char *inC = input.c_str();
     send(sockID, inC, strlen(inC), 0);
     delete[] inC;
     return 1;
@@ -46,7 +39,7 @@ void setupSocket(){
         CHECKERROR("Creating socket")
     }
     // specifying the address
-    sockaddr_in serverAddress; 
+    sockaddr_in serverAddress;
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_addr.s_addr = INADDR_ANY;
 
@@ -71,7 +64,7 @@ void connectServer(){
         err = recvfrom(sockID, buffer, 1024, MSG_PEEK, (sockaddr *)&partner, &partnerSize);
         CHECKERROR("Connecting server");
     } while (err == -1);
-    char *ip = inet_ntoa(((sockaddr_in *)&partner)->sin_addr);
+    char *ip = inet_ntoa(partner.sin_addr);
     std::cout << "Connection detected from " << ip << std::endl;
     delete[] ip;
     connect(sockID, (sockaddr *)&partner, sizeof(partner));
@@ -79,19 +72,17 @@ void connectServer(){
 
 void connectClient(){
     partner.sin_family = AF_INET;
-    bool connected = false;
-    while (!connected){
+    while (true){
         std::cout << "IP to connect to: ";
-        std::string input;
         std::getline(std::cin, input);
         const char *input_c = input.c_str();
         long ulAddr = inet_addr(input_c);
-        if ( ulAddr == INADDR_NONE || ulAddr == INADDR_ANY) {
+        if (ulAddr == INADDR_NONE || ulAddr == INADDR_ANY){
             std::cout << "Invalid IP" << std::endl;
             continue;
         }
         partner.sin_addr.s_addr = ulAddr;
-        
+
         std::cout << "Port to connect to: ";
         short port;
         std::cin >> port;
@@ -105,42 +96,39 @@ void connectClient(){
             CHECKERROR("Connecting");
             continue;
         }
-        std::cout << "CONNECTION ESTABLISHED" << std::endl;
 
-        if (err != -1) connected = true;
+        if (err != -1){
+            std::cout << "CONNECTION ESTABLISHED" << std::endl;
+            break;
+        }
     }
 }
 
 void cleanup(){
-    closesocket(sockID); 
+    closesocket(sockID);
     WSACleanup();
 }
 
-int main() {
-    #ifdef _WIN32
+int main(){
     WORD wVersionRequested = MAKEWORD(2, 2);
     WSADATA wsaData;
-    if (WSAStartup(wVersionRequested, &wsaData) != 0){
-        std::cout << "STARTERRR" << std::endl;
-    }
-    #endif
+    if (WSAStartup(wVersionRequested, &wsaData) != 0) std::cout << "STARTERRR" << std::endl;
 
     setupSocket();
 
     std::cout << "server OR client" << std::endl;
-    std::string choice;
-    std::getline(std::cin, choice);
-    if (choice == "server" || choice == "s") connectServer();
-    else if (choice == "client" || choice == "c") connectClient();
+    std::getline(std::cin, input);
+    if (input == "server" || input == "s") connectServer();
+    else if (input == "client" || input == "c") connectClient();
     else{
         std::cout << "bad answer";
         cleanup();
         return -1;
     }
-    
+
     // recieving data
     std::cout << "type \"c\" to close client" << std::endl;
-    while (true) {
+    while (true){
         listenToPartner();
         if (writeToPartner() == 0) break;
     }
