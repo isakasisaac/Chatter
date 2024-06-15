@@ -50,19 +50,14 @@ void setupSocket(){
     serverAddress.sin_port = htons(port);
 
     err = bind(sockID, (sockaddr *)&serverAddress, sizeof(serverAddress));
-    CHECKERROR("Socket binding");
-    sockaddr_in a;
-    int s = sizeof(a);
-    err = getsockname(sockID, (sockaddr *)&a, &s);
-    CHECKERROR("CHECKING IP ")
-    std::cout << "Reserved socket with port " << htons(a.sin_port) << " and IP " << inet_ntoa(a.sin_addr) << " tried " << inet_ntoa(serverAddress.sin_addr) << std::endl;
+    CHECKERROR("Socket binding")
 }
 
 void connectServer(){
     std::cout << "Waiting for connection..." << std::endl;
     do{
         err = recvfrom(sockID, buffer, 1024, MSG_PEEK, (sockaddr *)&partner, &partnerSize);
-        CHECKERROR("Connecting server");
+        CHECKERROR("Connecting server")
     } while (err == -1);
     char *ip = inet_ntoa(partner.sin_addr);
     std::cout << "Connection detected from " << ip << std::endl;
@@ -93,7 +88,7 @@ void connectClient(){
         std::cout << "s " << recieved << std::endl;
         if (recieved == SOCKET_ERROR){
             err = recieved;
-            CHECKERROR("Connecting");
+            CHECKERROR("Connecting")
             continue;
         }
 
